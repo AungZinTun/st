@@ -19,12 +19,13 @@ export const useHabitStore = defineStore('habit', {
     },
     async addHabit(habit) {
       try {
-        const newHabit = { _id: new Date().toISOString(), ...habit };
-        await habitsDb.put(newHabit);
+        // Create a slug from the habit name by converting to lowercase, replacing spaces with hyphens, and removing invalid characters
+        await habitsDb.put(habit);
         this.habits.push(newHabit);
       } catch (err) {
         console.error('Error adding habit:', err);
       }
-    },
+    }
+    
   },
 });

@@ -19,9 +19,8 @@ export const useActivityStore = defineStore('activity', {
     },
     async addActivity(activity) {
       try {
-        const newActivity = { _id: new Date().toISOString(), ...activity };
-        await activitiesDb.put(newActivity);
-        this.activities.push(newActivity);
+        await activitiesDb.put(activity);
+        this.activities.push(activity);
       } catch (err) {
         console.error('Error adding activity:', err);
       }

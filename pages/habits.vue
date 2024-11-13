@@ -1,71 +1,109 @@
+// pages/habits.vue
 <template>
-  <div>
-    <h1>Track Your Habits</h1>
-    <form @submit.prevent="addNewHabit">
-      <input type="text" v-model="name" placeholder="Habit Name" />
-      <select v-model="type">
-        <option value="good">Good Habit</option>
-        <option value="bad">Bad Habit</option>
-      </select>
-      <button type="submit">Add Habit</button>
-    </form>
-
-    <div v-if="habitStore.habits.length">
-      <h2>Daily Habit Tracker</h2>
-      <div v-for="habit in habitStore.habits" :key="habit._id">
-        <h3>{{ habit.name }} ({{ habit.type === 'good' ? 'Good' : 'Bad' }})</h3>
-        <div>
-          <label v-for="day in last7Days" :key="day">
-            <input
-              type="checkbox"
-              :checked="habit.progress && habit.progress[day]"
-              @change="toggleHabitStatus(habit._id, day, $event.target.checked)"
-            />
-            {{ day }}
-          </label>
-        </div>
-      </div>
-    </div>
-  </div>
+  <v-container class="pa-4">
+    <v-row justify="center">
+      <v-col cols="12" md="8">
+        <v-card>
+          <v-card-title>
+            <h2 class="text-h5">Manage Your Habits</h2>
+          </v-card-title>
+          <v-card-text>
+            <v-form @submit.prevent="addNewHabit">
+              <v-row>
+                <v-col cols="12" md="4">
+                  <v-text-field v-model="_id" label="Habit ID" placeholder="Manual ID (optional)" outlined dense />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field v-model="habitName" label="Habit Name" required outlined dense />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-select v-model="habitType" :items="['good', 'bad']" label="Habit Type" required outlined dense />
+                </v-col>
+                <v-col cols="12" class="text-center">
+                  <v-btn type="submit" color="primary" class="ma-2" elevation="2">Add Habit</v-btn>
+                </v-col>
+              </v-row>
+            </v-form>
+            <v-divider class="my-4"></v-divider>
+            <v-data-table :headers="habitHeaders" :items="habits" :sort-by="[{ key: 'startDate', order: 'desc' }]">
+              <template v-slot:item.actions="{ item }">
+                <v-icon class="me-2" size="small" @click="editHabit(item)">mdi-pencil</v-icon>
+                <v-icon size="small" @click="deleteHabit(item)">mdi-delete</v-icon>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useHabitStore } from '@/stores/habits';
 
 const habitStore = useHabitStore();
-const name = ref('');
-const type = ref('good');
+
+const _id = ref('');
+const habitName = ref('');
+const habitType = ref('good');
+const habits = ref([]);
+
+const habitHeaders = [
+  { title: 'Habit Name', key: 'name', align: 'start' },
+  { title: 'Habit Type', key: 'type' },
+  { title: 'Start Date', key: 'startDate' },
+  { title: 'Actions', key: 'actions', sortable: false },
+];
 
 const addNewHabit = () => {
-  if (name.value && type.value) {
-    habitStore.addHabit({
-      name: name.value,
-      type: type.value,
+  if (habitName.value && habitType.value) {
+    const serialNumber = String(habitStore.habits.length + 1000).padStart(4, '0');
+    const date = new Date().toISOString().split('T')[0];
+    const generatedId = _id.value ? _id.value : `${date}-${serialNumber}`;
+    const newHabit = {
+      _id: generatedId,
+      name: habitName.value,
+      type: habitType.value,
       startDate: new Date().toISOString(),
       progress: {},
+    };
+    habitStore.addHabit(newHabit).then(() => {
+      fetchHabits();
     });
-    name.value = '';
+    _id.value = '';
+    habitName.value = '';
+    habitType.value = 'good';
   }
 };
 
-const last7Days = computed(() => {
-  const days = [];
-  for (let i = 0; i < 7; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    days.push(date.toISOString().split('T')[0]);
-  }
-  return days.reverse();
-});
-
-const toggleHabitStatus = (habitId, date, status) => {
-  habitStore.updateHabitStatus(habitId, date, status);
+const editHabit = (habit) => {
+  _id.value = habit._id;
+  habitName.value = habit.name;
+  habitType.value = habit.type;
 };
 
-onMounted(() => {
-  habitStore.fetchHabits();
+const deleteHabit = (habit) => {
+  habitStore.deleteHabit(habit._id).then(() => {
+    fetchHabits();
+  });
+};
+
+const fetchHabits = async () => {
+  await habitStore.fetchHabits();
+  habits.value = habitStore.habits;
+};
+
+onMounted(async () => {
+  await fetchHabits();
 });
+
+watch(
+  () => habitStore.habits,
+  (newHabits) => {
+    habits.value = newHabits;
+  }
+);
 </script>
 
 <style scoped>
