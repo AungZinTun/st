@@ -1,3 +1,4 @@
+// stores/habits.js
 import { defineStore } from 'pinia';
 import PouchDB from 'pouchdb';
 
@@ -25,21 +26,5 @@ export const useHabitStore = defineStore('habit', {
         console.error('Error adding habit:', err);
       }
     },
-    async updateHabitStatus(habitId, date, status) {
-      try {
-        const habit = this.habits.find(h => h._id === habitId);
-        if (!habit) return;
-
-        if (!habit.progress) {
-          habit.progress = {};
-        }
-        habit.progress[date] = status;
-
-        await habitsDb.put(habit);
-        this.fetchHabits();  // Refresh habits list
-      } catch (err) {
-        console.error('Error updating habit status:', err);
-      }
-    }
-  }
+  },
 });
