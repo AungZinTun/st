@@ -5,7 +5,7 @@ const activitiesDb = new PouchDB('activities');
 
 export const useActivityStore = defineStore('activity', {
   state: () => ({
-    activities: [],
+    activities: []
   }),
   actions: {
     async fetchActivities() {
@@ -24,6 +24,6 @@ export const useActivityStore = defineStore('activity', {
       } catch (err) {
         console.error('Error adding activity:', err);
       }
-    },
-  },
+    }
+  }
 });
