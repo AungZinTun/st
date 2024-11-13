@@ -2,7 +2,7 @@
 <template>
   <div>
     <h1>Activities</h1>
-    <ActivityForm />
+    <ActivityForm @activity-added="onActivityAdded" />
     <ul>
       <li v-for="activity in activities" :key="activity._id">
         {{ activity.name }} (Habit: {{ getHabitName(activity.habitId) }}) - Start: {{ activity.startTime }} - End: {{ activity.endTime }}
@@ -12,22 +12,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useNuxtApp } from '#app';
+import { ref, onMounted, watch } from 'vue';
 import { useHabitStore } from '@/stores/habits';
+import { useActivityStore } from '@/stores/activities';
 import ActivityForm from '@/components/ActivityForm.vue';
 
-const activities = ref([]);
-const { $pouchdb } = useNuxtApp();
 const habitStore = useHabitStore();
+const activityStore = useActivityStore();
+const activities = ref(activityStore.activities);
 
 const fetchActivities = async () => {
   try {
-    const result = await $pouchdb.activitiesDb.allDocs({ include_docs: true });
-    activities.value = result.rows.map(row => row.doc);
+    await activityStore.fetchActivities();
   } catch (error) {
     console.error('Error fetching activities:', error);
   }
+};
+
+const onActivityAdded = async () => {
+  await fetchActivities();
 };
 
 const getHabitName = (habitId) => {
@@ -35,8 +38,16 @@ const getHabitName = (habitId) => {
   return habit ? habit.name : 'Unknown Habit';
 };
 
-onMounted(() => {
-  habitStore.fetchHabits();
-  fetchActivities();
+onMounted(async () => {
+  await habitStore.fetchHabits();
+  await fetchActivities();
 });
+
+watch(
+  () => activityStore.activities,
+  (newActivities) => {
+    activities.value = [...newActivities];
+  },
+  { deep: true }
+);
 </script>
